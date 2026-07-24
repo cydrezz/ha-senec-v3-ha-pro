@@ -147,7 +147,20 @@ class SenecLocal:
     _lalaHeaders = {
         **_defaultHeaders,
         "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
-        "Connection": "keep-alive"
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        # Use short-lived connections instead of a permanent keep-alive:
+        # the SENEC NPU (embedded web server) has very limited concurrent
+        # connection/thread resources. A permanently held keep-alive socket
+        # can starve the NPU's *other* duties - observed in the field
+        # (V3 hybrid duo, NPU 2510): the Modbus-TCP master session to an
+        # AC-coupled SMA inverter (Wirkleistungsbegrenzung) failed to
+        # re-establish for hours while this integration held its
+        # keep-alive connection, and recovered within ~90 seconds of the
+        # integration being disabled. Closing the connection after each
+        # poll costs one extra TCP/TLS handshake per cycle (negligible at
+        # a 60s interval) and frees the NPU's connection slot in between.
+        "Connection": "close",
     }
 
     def __str__(self) -> str:
@@ -2860,7 +2873,18 @@ class InverterLocal:
     """Senec Home Inverter addon"""
 
     _keepAliveHeaders = {
-        "Connection": "keep-alive",
+        # Use short-lived connections instead of a permanent keep-alive:
+        # the SENEC NPU (embedded web server) has very limited concurrent
+        # connection/thread resources. A permanently held keep-alive socket
+        # can starve the NPU's *other* duties - observed in the field
+        # (V3 hybrid duo, NPU 2510): the Modbus-TCP master session to an
+        # AC-coupled SMA inverter (Wirkleistungsbegrenzung) failed to
+        # re-establish for hours while this integration held its
+        # keep-alive connection, and recovered within ~90 seconds of the
+        # integration being disabled. Closing the connection after each
+        # poll costs one extra TCP/TLS handshake per cycle (negligible at
+        # a 60s interval) and frees the NPU's connection slot in between.
+        "Connection": "close",
     }
 
     def __init__(self, host, inv_session, integ_version: str = None):
