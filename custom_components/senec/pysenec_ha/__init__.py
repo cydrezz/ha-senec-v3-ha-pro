@@ -159,9 +159,10 @@ class SenecLocal:
         # a Modbus-TCP dropout on it; the log forensics then showed the same
         # dropout pattern going back to 2021, long before this integration
         # existed. Resource hygiene is the reason, not a proven root cause.
-        # Upstream reached the same conclusion independently in 0a8b3ce
-        # ("make sure that we don't tell the lala.cgi to keep connection
-        # alive", 2026-07-25).
+        # Upstream reached the same conclusion in 0a8b3ce ("make sure that we
+        # don't tell the lala.cgi to keep connection alive", 2026-07-25, i.e.
+        # later the same day). Whether that was arrived at independently is not
+        # something this comment can know, so it does not claim it.
         "Connection": "close",
     }
 
@@ -2736,9 +2737,10 @@ class InverterLocal:
         # a Modbus-TCP dropout on it; the log forensics then showed the same
         # dropout pattern going back to 2021, long before this integration
         # existed. Resource hygiene is the reason, not a proven root cause.
-        # Upstream reached the same conclusion independently in 0a8b3ce
-        # ("make sure that we don't tell the lala.cgi to keep connection
-        # alive", 2026-07-25).
+        # Upstream reached the same conclusion in 0a8b3ce ("make sure that we
+        # don't tell the lala.cgi to keep connection alive", 2026-07-25, i.e.
+        # later the same day). Whether that was arrived at independently is not
+        # something this comment can know, so it does not claim it.
         "Connection": "close",
     }
 
