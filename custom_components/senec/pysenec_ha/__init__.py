@@ -306,8 +306,10 @@ class SenecLocal:
             # back off after failed attempts: while the version info can not be
             # read, every 60s poll cycle would otherwise fire the full
             # cookie-init/logout-retry/version sequence (up to 4 extra requests)
-            # against an NPU that is already struggling - retry at most every 10min
-            if self._last_version_attempt + 600 < time():
+            # against an NPU that is already struggling. 120s keeps the retry
+            # pressure low without leaving the integration blind for long after
+            # a single transient failure (e.g. during an entry reload).
+            if self._last_version_attempt + 120 < time():
                 self._last_version_attempt = time()
                 await self._init_gui_cookies(retry=True)
                 await self._read_version()
