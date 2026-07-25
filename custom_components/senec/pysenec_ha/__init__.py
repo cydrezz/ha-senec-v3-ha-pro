@@ -2700,12 +2700,33 @@ class SenecLocal:
     def wallbox_set_icmax(self) -> [float]:
         return self.read_array_data(SENEC_SECTION_WALLBOX, "SET_ICMAX")
 
+    def _local_wallbox_mode_from_lala(self, pos: int) -> str:
+        # derive the wallbox mode from the lala.cgi raw data (PROHIBIT_USAGE /
+        # SMART_CHARGE_ACTIVE) - the local config entry must not depend on the
+        # optional web-api entry/bridge to know its own wallbox mode
+        prohibit = self.read_array_data(SENEC_SECTION_WALLBOX, "PROHIBIT_USAGE")
+        smart = self.read_array_data(SENEC_SECTION_WALLBOX, "SMART_CHARGE_ACTIVE")
+        try:
+            if prohibit is not None and int(float(prohibit[pos])) == 1:
+                return LOCAL_WB_MODE_LEGACY_LOCKED
+            if smart is not None:
+                sca = int(float(smart[pos]))
+                if sca == 3:
+                    return LOCAL_WB_MODE_LEGACY_SSGCM_3
+                if sca == 4:
+                    return LOCAL_WB_MODE_LEGACY_SSGCM_4
+                if sca == 0:
+                    return LOCAL_WB_MODE_LEGACY_FAST
+        except (IndexError, TypeError, ValueError):
+            pass
+        return LOCAL_WB_MODE_LEGACY_UNKNOWN
+
     async def set_nva_wallbox_set_icmax(self, pos: int, value: float, sync: bool = True, verify_state: bool = True):
         if verify_state:
             if self._bridge_to_senec_online is not None:
                 local_mode = self._bridge_to_senec_online._app_get_local_wallbox_mode_from_api_values_legacy(pos)
             else:
-                local_mode = "no-bridge-avail"
+                local_mode = self._local_wallbox_mode_from_lala(pos)
         else:
             local_mode = LOCAL_WB_MODE_LEGACY_SSGCM_3
 
