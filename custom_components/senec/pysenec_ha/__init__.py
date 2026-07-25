@@ -438,7 +438,10 @@ class SenecLocal:
                 await asyncio.sleep(5)
                 await self._read_senec_lala_with_retry(retry=False)
             else:
-                _LOGGER.info(f"_read_senec_lala_with_retry() failed with {type(exc).__name__} - {exc}")
+                # final failure must reach the DataUpdateCoordinator so that
+                # entities become unavailable instead of silently keeping
+                # their last known (stale) values
+                raise
 
     async def _read_senec_lala(self):
         # captured 2026/08
@@ -705,13 +708,17 @@ class SenecLocal:
                     return await res.json()
                 except JSONDecodeError as exc:
                     _LOGGER.warning(f"_request_senec_lala(): JSONDecodeError while 'await res.json()' {exc}")
+                    raise
                 except Exception as err:
                     _LOGGER.warning(f"_request_senec_lala(): read_senec_lala caused: {err}")
+                    raise
 
         except asyncio.TimeoutError:
             _LOGGER.info(f"_request_senec_lala(): TimeoutError (20sec) while posting '{form}'")
+            raise
         except BaseException as e:
             _LOGGER.info(f"_request_senec_lala() caused: {type(e).__name__} - {e}")
+            raise
 
     async def _read_all_fields(self) -> []:
         form = {}
