@@ -6835,8 +6835,10 @@ class SenecOnline:
                 else:
                     self._web_is_authenticated = False
                     if retry:
+                        # re-authenticate once, then retry the request once
+                        # (bounded - no recursion via web_update())
                         await self.web_authenticate(do_update=False, throw401=False)
-                        await self.web_update(retry=False)
+                        await self.web_update_now(retry=False)
 
             except ClientResponseError as exc:
                 if exc.status == 401:
