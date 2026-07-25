@@ -600,7 +600,9 @@ class SenecLocal:
             #"sec-ch-ua-platform": "\"Windows\"",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Connection": "keep-alive"
+            # short-lived connection - same rationale as in _lalaHeaders: do
+            # not hold a keep-alive socket against the resource-constrained NPU
+            "Connection": "close",
         }
 
         try:
