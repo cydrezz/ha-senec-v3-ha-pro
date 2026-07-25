@@ -1,0 +1,30 @@
+name: Lint
+
+# Regressions-Gitter fuer den ha-pro-Fork. Der Regelsatz steht in ruff.toml und
+# ist absichtlich schmal (Syntax + undefinierte Namen), damit ein rotes Ergebnis
+# etwas bedeutet. Ruff ist gepinnt: eine neue Ruff-Version bringt neue Regeln
+# mit und wuerde die CI ohne Code-Aenderung rot faerben.
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  ruff:
+    name: Ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install Ruff
+        run: pip install ruff==0.16.0
+
+      - name: Ruff check
+        run: ruff check custom_components/senec
+
+      - name: Syntax-Gegenprobe (alle Module compilierbar)
+        run: python -m compileall -q custom_components/senec
