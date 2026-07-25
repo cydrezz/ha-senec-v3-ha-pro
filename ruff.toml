@@ -1,0 +1,32 @@
+# Ruff-Konfiguration fuer den ha-pro-Fork.
+#
+# Absicht: ein *Regressions-Gitter*, kein Stil-Diktat. Der Upstream-Code ist
+# ~16k Zeilen gewachsen; der volle Ruff-Default meldet darauf 292 Treffer
+# (F541 f-Strings ohne Platzhalter, F401 ungenutzte Importe, ...). Eine CI, die
+# ab Tag eins rot ist, liest niemand. Deshalb wird nur das geprueft, was echten
+# Schaden anrichtet -- und dieser Satz ist heute vollstaendig gruen, jede rote
+# CI ist also eine echte neue Regression.
+#
+# Bewusst NICHT aktiviert: F401, F541, F841, E722 (Upstream-Rauschen, kein
+# Laufzeitfehler). Wer das aufraeumen will, macht das in einem eigenen
+# Upstream-PR, nicht als CI-Zwang im Fork.
+
+target-version = "py313"
+
+[lint]
+# E9  = Syntax-/Parse-Fehler        F63 = kaputte Vergleiche/Assertions
+# F7  = Syntaxfehler im Kontext     F82 = undefinierte Namen
+select = ["E9", "F63", "F7", "F82"]
+
+[lint.per-file-ignores]
+# F821 "Undefined name `util`" (48x) ist hier ein Fehlalarm, kein Bug:
+# `pysenec_ha/__init__.py` importiert in Zeile 110
+#   from custom_components.senec.pysenec_ha.util import parse
+# Dieser Import laedt das Submodul `util`, und Python haengt ein importiertes
+# Submodul als Attribut an das Paket-Objekt. Die Attribute des Paket-Objekts
+# SIND die Globals von `__init__.py` -- der Name `util` ist zur Laufzeit also
+# gebunden, bevor die erste `util.mask_string(...)`-Zeile laeuft. Ruff kann
+# diesen Seiteneffekt statisch nicht sehen.
+# Der Code stammt aus dem Upstream (dort ebenfalls 47 Treffer) und wird hier
+# nicht umgeschrieben -- das waere Fork-Drift ohne Nutzen.
+"custom_components/senec/pysenec_ha/__init__.py" = ["F821"]
