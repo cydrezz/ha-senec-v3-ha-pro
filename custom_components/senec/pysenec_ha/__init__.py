@@ -6598,15 +6598,18 @@ class SenecOnline:
                         _LOGGER.warning(f"web_update_now() JSONDecodeError while 'await res.json()' {exc}")
 
                 else:
-                    self._is_authenticated = False
+                    self._web_is_authenticated = False
                     if retry:
-                        await self.web_update(retry=False)
+                        # re-authenticate once, then retry the request once
+                        # (bounded - no recursion via web_update())
+                        await self.web_authenticate(do_update=False, throw401=False)
+                        await self.web_update_now(retry=False)
 
             except ClientResponseError as exc:
                 if exc.status == 401:
                     self.purge_senec_cookies()
                 if exc.status != 408:
-                    self._is_authenticated = False
+                    self._web_is_authenticated = False
                 if retry:
                     await self.web_update_now(retry=False)
 
