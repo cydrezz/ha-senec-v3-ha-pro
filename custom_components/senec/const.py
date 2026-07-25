@@ -1964,18 +1964,23 @@ MAIN_BIN_SENSOR_TYPES = [
 ]
 
 """Supported main unit button types."""
+# ha-pro hardening: the system_reboot button is deliberately removed from this
+# deployment. An appliance reboot is forbidden on this installation (see
+# Senec/SMA forensics 2026-07-23) and the upstream button ships
+# entity_registry_enabled_default=True - one accidental dashboard click or
+# button.press service call would reboot the appliance with no confirmation.
 MAIN_BUTTON_TYPES =[
-    ExtButtonEntityDescription(
-        key="system_reboot",
-        name="Reboot System",
-        payload="true",
-        #entity_category=EntityCategory.CONFIG,
-        device_class=None,
-        icon="mdi:restart",
-        entity_registry_enabled_default=True,
-        # as reported by ph_o_e_n_ix [photovoltaikforum] the reset also working for older SENEC Systems
-        require_2408=True
-    ),
+    #ExtButtonEntityDescription(
+    #    key="system_reboot",
+    #    name="Reboot System",
+    #    payload="true",
+    #    #entity_category=EntityCategory.CONFIG,
+    #    device_class=None,
+    #    icon="mdi:restart",
+    #    entity_registry_enabled_default=True,
+    #    # as reported by ph_o_e_n_ix [photovoltaikforum] the reset also working for older SENEC Systems
+    #    #require_2408=True
+    #),
 ]
 
 """Supported main unit number implementations"""
