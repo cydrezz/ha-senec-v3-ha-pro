@@ -586,11 +586,13 @@ class SenecLocal:
             #"sec-ch-ua-platform": "\"Windows\"",
             "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
             "Accept": "application/json, text/javascript, */*; q=0.01",
-            "Keep-Alive": "timeout=60, max=0",
+            # short-lived connection - same rationale as in _lalaHeaders: do
+            # not hold a keep-alive socket against the resource-constrained NPU
+            "Connection": "close",
         }
 
         try:
-            async with self.lala_session.post(self.url, data=form_data_str, headers=special_hdrs, ssl=False, chunked=None) as res:
+            async with self.lala_session.post(self.url, data=form_data_str, headers=special_hdrs, ssl=False, chunked=None, timeout=self._timeout) as res:
                 _LOGGER.debug(f"senec_v31_post_plain_form_data() '{self.url}' with headers: {res.request_info.headers}")
                 try:
                     res.raise_for_status()
