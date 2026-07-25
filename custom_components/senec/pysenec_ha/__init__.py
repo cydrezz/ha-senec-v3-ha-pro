@@ -260,6 +260,7 @@ class SenecLocal:
         self._raw = None
         self._raw_version = None
         self._last_version_update = 0
+        self._last_version_attempt = 0
         self._last_system_reset = 0
         self._timeout = aiohttp.ClientTimeout(total=20, connect=None, sock_connect=None, sock_read=None,
                                               ceil_threshold=5)
@@ -299,8 +300,14 @@ class SenecLocal:
     async def update_version(self):
         # we do not expect that the version info will update in the next 60 minutes…
         if self._last_version_update + 3600 < time():
-            await self._init_gui_cookies(retry=True)
-            await self._read_version()
+            # back off after failed attempts: while the version info can not be
+            # read, every 60s poll cycle would otherwise fire the full
+            # cookie-init/logout-retry/version sequence (up to 4 extra requests)
+            # against an NPU that is already struggling - retry at most every 10min
+            if self._last_version_attempt + 600 < time():
+                self._last_version_attempt = time()
+                await self._init_gui_cookies(retry=True)
+                await self._read_version()
 
     async def _init_gui_cookies(self, retry:bool):
         # with NPU 2411 we must start the communication with the backend with this single call…
@@ -3341,6 +3348,10 @@ class SenecOnline:
 
         self._app_token_object = {}
         self._app_is_authenticated = False
+        # exponential backoff for full SSO login attempts (see app_update):
+        # one failed OpenID flow per poll cycle risks account throttling/lockout
+        self._app_next_login_attempt_ts = 0
+        self._app_login_backoff_secs = 60
         self._app_token = None
         # the '_app_master_plant_id' will be used in any further request to
         # the senec endpoints as part of the URL...
@@ -3670,8 +3681,15 @@ class SenecOnline:
 
                 return True
             else:
-                # just brute-force getting a new login…
-                await self._initial_token_request_01_start()
+                if self._app_next_login_attempt_ts <= time():
+                    # schedule next allowed attempt BEFORE trying (a thrown
+                    # exception must not bypass the backoff)
+                    self._app_next_login_attempt_ts = time() + self._app_login_backoff_secs
+                    self._app_login_backoff_secs = min(self._app_login_backoff_secs * 2, 1800)
+                    # just brute-force getting a new login…
+                    await self._initial_token_request_01_start()
+                else:
+                    _LOGGER.debug(f"app_update(): not authenticated - next login attempt not before {strftime('%Y-%m-%d %H:%M:%S', localtime(self._app_next_login_attempt_ts))}")
         except BaseException as exc:
             stack_trace = traceback.format_stack()
             stack_trace_str = ''.join(stack_trace[:-1])  # Exclude the call to this function
@@ -4213,6 +4231,9 @@ class SenecOnline:
         if self._app_token_object is not None and "access_token" in self._app_token_object:
             self._app_token = f"Bearer {self._app_token_object['access_token']}"
             self._app_is_authenticated  = True
+            # successful login resets the SSO backoff
+            self._app_next_login_attempt_ts = 0
+            self._app_login_backoff_secs = 60
             if CONF_APP_SYSTEMID in self._app_token_object and self._app_token_object[CONF_APP_SYSTEMID] is not None:
                 self._app_master_plant_id   = self._app_token_object[CONF_APP_SYSTEMID]
                 self._app_serial_number     = self._app_token_object[CONF_APP_SERIALNUM]
@@ -7728,6 +7749,9 @@ class SenecOnline:
 
         self._app_token_object = {}
         self._app_is_authenticated = False
+        # allow an immediate re-login after an explicit cache reset
+        self._app_next_login_attempt_ts = 0
+        self._app_login_backoff_secs = 60
         self._app_token = None
         self._app_master_plant_id = None
         self._app_serial_number = None
