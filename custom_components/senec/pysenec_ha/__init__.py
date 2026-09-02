@@ -161,10 +161,11 @@ class SenecLocal:
         # a Modbus-TCP dropout on it; the log forensics then showed the same
         # dropout pattern going back to 2021, long before this integration
         # existed. Resource hygiene is the reason, not a proven root cause.
-        # Upstream reached the same conclusion in 0a8b3ce ("make sure that we
-        # don't tell the lala.cgi to keep connection alive", 2026-07-25, i.e.
-        # later the same day). Whether that was arrived at independently is not
-        # something this comment can know, so it does not claim it.
+        # Upstream tried the same in 0a8b3ce (2026-07-25) but reverted to
+        # keep-alive in abac820 (2026-07-26, "since the ORIGINAL Web does it
+        # too"). Connection: close is therefore a fork-only deviation, kept on
+        # purpose (decision 2026-09-02): short-lived connections plus the
+        # extra request logging of this fork are what we want to keep.
         "Connection": "close",
     }
 
@@ -2707,27 +2708,6 @@ class SenecLocal:
     def wallbox_set_icmax(self) -> [float]:
         return self.read_array_data(SENEC_SECTION_WALLBOX, "SET_ICMAX")
 
-    def _local_wallbox_mode_from_lala(self, pos: int) -> str:
-        # derive the wallbox mode from the lala.cgi raw data (PROHIBIT_USAGE /
-        # SMART_CHARGE_ACTIVE) - the local config entry must not depend on the
-        # optional web-api entry/bridge to know its own wallbox mode
-        prohibit = self.read_array_data(SENEC_SECTION_WALLBOX, "PROHIBIT_USAGE")
-        smart = self.read_array_data(SENEC_SECTION_WALLBOX, "SMART_CHARGE_ACTIVE")
-        try:
-            if prohibit is not None and int(float(prohibit[pos])) == 1:
-                return LOCAL_WB_MODE_LEGACY_LOCKED
-            if smart is not None:
-                sca = int(float(smart[pos]))
-                if sca == 3:
-                    return LOCAL_WB_MODE_LEGACY_SSGCM_3
-                if sca == 4:
-                    return LOCAL_WB_MODE_LEGACY_SSGCM_4
-                if sca == 0:
-                    return LOCAL_WB_MODE_LEGACY_FAST
-        except (IndexError, TypeError, ValueError):
-            pass
-        return LOCAL_WB_MODE_LEGACY_UNKNOWN
-
     async def set_nva_wallbox_set_icmax(self, pos: int, value: float, sync: bool = True, verify_state: bool = True):
         if verify_state:
             if self._bridge_to_senec_online is not None:
@@ -2925,10 +2905,11 @@ class InverterLocal:
         # a Modbus-TCP dropout on it; the log forensics then showed the same
         # dropout pattern going back to 2021, long before this integration
         # existed. Resource hygiene is the reason, not a proven root cause.
-        # Upstream reached the same conclusion in 0a8b3ce ("make sure that we
-        # don't tell the lala.cgi to keep connection alive", 2026-07-25, i.e.
-        # later the same day). Whether that was arrived at independently is not
-        # something this comment can know, so it does not claim it.
+        # Upstream tried the same in 0a8b3ce (2026-07-25) but reverted to
+        # keep-alive in abac820 (2026-07-26, "since the ORIGINAL Web does it
+        # too"). Connection: close is therefore a fork-only deviation, kept on
+        # purpose (decision 2026-09-02): short-lived connections plus the
+        # extra request logging of this fork are what we want to keep.
         "Connection": "close",
     }
 
